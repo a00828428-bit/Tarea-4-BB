@@ -1,0 +1,136 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+**TAREA 4 BLOOMBERG**
+```{r}
+library(quantmod)
+
+acciones <- c("RL", "TPR", "PVH", "CPRI", "AMZN", "TJX", "WMT", "NKE", "XLY", "CROX", "DECK", "SPY")
+
+getSymbols(acciones, from = "2024-10-02", to = "2026-10-03")
+
+rend <- function(x) na.omit(Cl(x) / lag(Cl(x)) - 1)
+#Rendimiento diario con el precio de cierre, igual que Bloomberg
+
+```
+
+```{r}
+
+nke_close <- (NKE$NKE.Close)
+xly_close <- (XLY$XLY.Close)
+crox_close <- (CROX$CROX.Close)
+deck_close <- (DECK$DECK.Close)
+
+nke_bbg <- dailyReturn(nke_close)[-1]
+xly_bbg <- dailyReturn(xly_close)[-1]
+crox_bbg <- dailyReturn(crox_close)[-1]
+deck_bbg <- dailyReturn(deck_close)[-1]
+rl_bbg <- dailyReturn(RL$RL.Close)[-1]
+tpr_bbg <- dailyReturn(TPR$TPR.Close)[-1]
+#Rendimientos diarios del 3 de octubre de 2024 al 2 de octubre de 2026, mismo periodo que Bloomberg
+```
+
+
+```{r}
+moda <- merge(rend(RL), rend(TPR), rend(PVH), rend(CPRI))
+colnames(moda) <- c("RL", "TPR", "PVH", "CPRI")
+round(cor(moda, use = "complete.obs"), 3)
+```
+**Matriz de correlación (moda premium):** La matriz de correlación de los rendimientos diarios de Ralph Lauren, Tapestry, PVH y Capri, calculada en RStudio para el periodo del 2 de octubre de 2024 al 2 de octubre de 2026, coincide exactamente con la obtenida en Bloomberg mediante la función CORR, lo que confirma que ambos análisis utilizan los mismos datos y la misma metodología. Ralph Lauren presenta la correlación más alta con Tapestry (0.642), seguida de PVH (0.560) y Capri (0.490), lo que es consistente con los resultados de los modelos de regresión de actividades anteriores, en los que Tapestry fue el competidor con mayor relación. Por su parte, Tapestry y Capri presentan la correlación más baja del grupo (0.287), a pesar de competir en el mismo segmento de lujo accesible.
+
+![Matriz de correlación en Bloomberg](Bloomberg/bbg_corr_moda.png)
+
+```{r}
+comercio <- merge(rend(TPR), rend(AMZN), rend(TJX), rend(WMT))
+colnames(comercio) <- c("TPR", "AMZN", "TJX", "WMT")
+round(cor(comercio, use = "complete.obs"), 3)
+```
+**La matriz de correlación (comercio minorista):** La matriz de correlación de los rendimientos diarios de Tapestry, Amazon, TJX y Walmart calculada en RStudio coincide exactamente con la obtenida en Bloomberg. Las correlaciones de este grupo son considerablemente más bajas que las del sector moda premium: Tapestry presenta su mayor correlación con TJX (0.321), empresa que también comercializa ropa y accesorios, seguida de Amazon (0.287), mientras que con Walmart su correlación es apenas de 0.196. La correlación más alta del grupo se da entre TJX y Walmart (0.423), ambas enfocadas en consumidores sensibles al precio, y la más baja entre Amazon y Walmart (0.136). Estos resultados confirman lo observado en los modelos de regresión de actividades anteriores: Walmart tiene una relación débil con las empresas de moda, por lo que funciona como un elemento de diversificación en el portafolio.
+
+![Matriz de correlación en Bloomberg](Bloomberg/bbg_corr_comercio.png)
+
+```{r}
+calzado <- merge(rend(NKE), rend(XLY), rend(CROX), rend(DECK))
+colnames(calzado) <- c("NKE", "XLY", "CROX", "DECK")
+round(cor(calzado), 3)
+```
+**La matriz de correlación (calzado):** La matriz de correlación de los rendimientos diarios de Nike, XLY, Crocs y Deckers calculada en RStudio coincide exactamente con la obtenida en Bloomberg. Deckers presenta su mayor correlación con el sector de consumo discrecional (XLY, 0.506), seguida de Crocs (0.467) y Nike (0.411), lo que es consistente con los modelos de regresión de actividades anteriores, en los que XLY fue la variable con mayor efecto sobre Deckers y Crocs tuvo una relación más fuerte que Nike. Las correlaciones de este grupo se encuentran en un rango moderado (0.367 a 0.506), lo que indica que, aunque las empresas de calzado responden a factores comunes del consumo, cada una mantiene un comportamiento propio importante.
+
+![Matriz de correlación en Bloomberg](Bloomberg/bbg_corr_calzado.png)
+
+
+```{r}
+getSymbols("TPR", from = "2023-01-03", to = "2026-10-10")
+getSymbols("AMZN", from = "2023-01-03", to = "2026-10-10")
+getSymbols("DECK", from = "2023-01-03", to = "2026-10-10")
+getSymbols("SPY", from = "2023-01-03", to = "2026-10-10")
+
+tpr_hra <- dailyReturn(TPR$TPR.Close)[-1]
+amzn_hra <- dailyReturn(AMZN$AMZN.Close)[-1]
+deck_hra <- dailyReturn(DECK$DECK.Close)[-1]
+spy_hra <- dailyReturn(SPY$SPY.Close)[-1]
+#Rendimientos diarios del 4 de enero de 2023 al 9 de octubre de 2026, mismo periodo que las regresiones de Bloomberg
+```
+```{r}
+modelo_comercio <- lm(tpr_hra ~ amzn_hra)
+summary(modelo_comercio)
+```
+**La regresión (comercio minorista): Tapestry en función de Amazon.** La regresión estimada en RStudio con los rendimientos diarios del 4 de enero de 2023 al 9 de octubre de 2026 (945 observaciones) coincide exactamente con la obtenida en Bloomberg mediante la función HRA en todos sus indicadores. El coeficiente de Amazon es de 0.292, con un error estándar de 0.037 y un estadístico t de 7.82, por lo que es altamente significativo: por cada 1% que se mueve Amazon, Tapestry se mueve en promedio 0.29% en la misma dirección. El intercepto (0.105% diario) no es significativo (p = 0.170). El R2 es de apenas 0.061, lo que indica que Amazon explica solo el 6.1% de la variación diaria de Tapestry, y el error estándar residual es de 2.35% diario, igual a la desviación estándar del error reportada por Bloomberg. Estos resultados confirman que, aunque existe una relación positiva entre el comercio electrónico y la moda de lujo accesible, Tapestry responde principalmente a factores propios y de su sector, lo que es consistente con los modelos de actividades anteriores.
+
+![Regresión en Bloomberg: Tapestry en función de Amazon](Bloomberg/bbg_reg_tpr_amzn.png)
+
+```{r}
+modelo_calzado <- lm(deck_hra ~ spy_hra)
+summary(modelo_calzado)
+```
+**Cotejo de la regresión (calzado): Deckers en función del S&P 500.** La regresión estimada en RStudio con los rendimientos diarios del 4 de enero de 2023 al 9 de octubre de 2026 (945 observaciones) coincide exactamente con la obtenida en Bloomberg mediante la función HRA. El coeficiente del S&P 500 es de 1.227, con un error estándar de 0.085 y un estadístico t de 14.47, por lo que es altamente significativo: por cada 1% que se mueve el mercado, Deckers se mueve en promedio 1.23% en la misma dirección. Al tener una beta mayor a 1, Deckers es una acción más sensible que el mercado, es decir, amplifica tanto sus alzas como sus caídas. El intercepto (-0.036% diario) no es significativo (p = 0.657). El R2 es de 0.182, por lo que el mercado explica el 18.2% de la variación diaria de Deckers, y el resto se debe a factores propios de la empresa y de su sector, como se observó en los modelos de actividades anteriores, donde el consumo discrecional
+
+![Regresión en Bloomberg: Deckers en función del S&P 500](Bloomberg/bbg_reg_deck_spy.png)
+
+```{r}
+modelo_moda <- lm(rl_bbg ~ tpr_bbg)
+summary(modelo_moda)
+```
+**La regresión (moda premium): Ralph Lauren en función de Tapestry.** La regresión estimada en RStudio con los rendimientos diarios del 3 de octubre de 2024 al 2 de octubre de 2026 se comparó con la obtenida en Bloomberg mediante la función HRA. El coeficiente de Tapestry coincide en ambas plataformas (0.558), al igual que su error estándar (0.030). El resto de los indicadores presenta diferencias mínimas: el R2 es de 0.412 en RStudio y de 0.414 en Bloomberg, la correlación de 0.642 y 0.643, el estadístico t de 18.69 y 18.73, la desviación estándar del error de 1.816% y 1.815%, el intercepto de 0.028% y 0.020%, y su error estándar de 0.081% y 0.082%, respectivamente. Estas diferencias se explican porque Bloomberg utilizó 499 observaciones y RStudio 501, debido a una pequeña diferencia en el rango de fechas seleccionado; en las otras dos regresiones, en las que el periodo fue idéntico, todos los indicadores coincidieron exactamente. En ambas plataformas, el coeficiente de Tapestry es altamente significativo: por cada 1% que se mueve Tapestry, Ralph Lauren se mueve en promedio 0.56% en la misma dirección, mientras que el intercepto no es significativo. Con un R2 superior al 40%, Tapestry es la acción que mejor explica los movimientos de Ralph Lauren entre las analizadas.
+
+
+![Regresión en Bloomberg: Ralph Lauren en función de Tapestry](Bloomberg/bbg_reg_rl_tpr.png)
+
+
+**Preguntas del Capítulo 16 de Gujarati: Modelos de regresión con datos de panel**
+
+**16.1. Características de los datos de corte transversal, series de tiempo y datos de panel**
+
+a) Datos de corte transversal: se observan varias unidades (personas, empresas, países) en un mismo momento del tiempo. Por ejemplo, las ventas de 50 empresas en 2025. Su principal problema suele ser la heterocedasticidad, ya que las unidades pueden ser muy distintas entre sí en tamaño o características.
+
+b) Series de tiempo: se observa una sola unidad a lo largo de varios periodos. Por ejemplo, los rendimientos diarios de Ralph Lauren de 2023 a 2026. Su principal problema suele ser la autocorrelación, ya que lo que ocurre en un periodo tiende a relacionarse con lo ocurrido en el anterior.
+
+c) Datos de panel: combinan ambas dimensiones, es decir, se observan varias unidades a lo largo de varios periodos. Por ejemplo, los rendimientos diarios de varias empresas de moda de 2023 a 2026. Permiten más observaciones, más variabilidad y la posibilidad de controlar características propias de cada unidad que no se observan directamente, aunque pueden presentar tanto heterocedasticidad como autocorrelación.
+
+**16.2. Modelo de efectos fijos (MEF)**
+
+El modelo de efectos fijos reconoce que cada unidad tiene características propias que no cambian con el tiempo y que pueden influir en la variable dependiente, como la cultura de una empresa o la calidad de su administración. Para capturarlas, permite que cada unidad tenga su propio intercepto, mientras que las pendientes son iguales para todas. Se le llama "fijo" porque, aunque el intercepto varía entre unidades, no cambia a lo largo del tiempo. El MEF considera ambas dimensiones del panel porque los interceptos capturan las diferencias entre unidades (espacio), mientras que la estimación de las pendientes aprovecha los cambios de cada unidad a lo largo del tiempo. Además, puede ampliarse para incluir efectos de tiempo, agregando variables dicótomas por periodo que capturan factores que afectan a todas las unidades en un mismo momento.
+
+**16.3. Modelo con componentes del error (MCE)**
+
+El modelo con componentes del error, también llamado de efectos aleatorios, supone que las diferencias entre unidades no son fijas, sino aleatorias: cada unidad se considera una extracción de una población más grande, con un intercepto promedio común y una desviación propia que forma parte del término de error. Por ello, el error tiene dos componentes: uno propio de cada unidad y otro que varía entre unidades y en el tiempo.
+
+La diferencia con el MEF es que en este último cada unidad tiene su propio intercepto fijo, mientras que en el MCE las diferencias entre unidades se incorporan al error. El MCE es apropiado cuando las unidades son una muestra aleatoria de una población más amplia y cuando sus características propias no están correlacionadas con las variables explicativas. El MEF es apropiado cuando el interés está en las unidades específicas de la muestra, o cuando esas características propias sí están correlacionadas con las variables explicativas, ya que en ese caso el MCE produciría estimadores sesgados. Para decidir entre ambos se utiliza la prueba de Hausman: si se rechaza su hipótesis nula, se prefiere el MEF.
+
+**16.4. Diferencia entre MCVD, estimación dentro de grupos y primeras diferencias**
+
+Los tres son formas de estimar un modelo de efectos fijos, ya que eliminan el efecto de las características propias de cada unidad que no cambian en el tiempo, pero lo hacen de manera distinta:
+
+- Mínimos cuadrados con variables dicótomas (MCVD): agrega una variable dicótoma por cada unidad para estimar su intercepto propio. Su desventaja es que, con muchas unidades, consume muchos grados de libertad.
+- Estimación dentro de grupos: a cada observación se le resta el promedio de su unidad a lo largo del tiempo, con lo que se elimina el efecto fijo. Produce las mismas pendientes que el MCVD, pero sin estimar un intercepto por cada unidad.
+- Primeras diferencias: a cada observación se le resta la del periodo anterior de la misma unidad, lo que también elimina el efecto fijo. Con solo dos periodos produce los mismos resultados que los otros métodos, pero con más periodos los resultados pueden diferir, ya que se pierde una observación por unidad y el término de error puede presentar autocorrelación.
+
+En resumen, el MCVD y la estimación dentro de grupos producen los mismos coeficientes, mientras que las primeras diferencias coinciden con ellos solo cuando hay dos periodos.
+
+![Transacciones al 12 de octubre 2026](Transactions 12 oct.png)
+
+
+
